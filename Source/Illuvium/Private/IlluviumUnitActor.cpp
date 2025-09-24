@@ -5,7 +5,6 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "IlluviumSimulationComponent.h"
-#include "IlluviumGameModeBase.h"
 
 AIlluviumUnitActor::AIlluviumUnitActor()
 {
@@ -20,7 +19,7 @@ void AIlluviumUnitActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // Interpolate
+    // Interpolate positions
     LerpAlpha = FMath::Clamp(LerpAlpha + DeltaTime * LerpSpeed, 0.0f, 1.0f);
     FVector NewPos = FMath::Lerp(PrevWorldPos, TargetWorldPos, LerpAlpha);
     SetActorLocation(NewPos);
@@ -35,10 +34,10 @@ void AIlluviumUnitActor::Tick(float DeltaTime)
     }
 }
 
-void AIlluviumUnitActor::InitializeVisual(int32 InUnitId, bool bIsRedTeam, UIlluviumSimulationComponent* InSim, const FIntPoint& StartPos)
+void AIlluviumUnitActor::InitializeVisuals(int32 InUnitId, bool bIsRedTeam, UIlluviumSimulationComponent* InSimComp, const FIntPoint& StartPos)
 {
     UnitId = InUnitId;
-    SimulationComp = InSim;
+    SimulationComp = InSimComp;
 
     PrevWorldPos = GridToWorld(StartPos);
     TargetWorldPos = PrevWorldPos;
@@ -76,13 +75,19 @@ void AIlluviumUnitActor::HandleAttacked(int32 AttackerId, int32 TargetId)
 {
     if (AttackerId == UnitId)
     {
-        // Attack flash (increase emissive briefly)
-        if (DynMat) DynMat->SetScalarParameterValue(TEXT("EmissiveStrength"), 2.0f);
+        // Attack flash
+        if (DynMat)
+        {
+            DynMat->SetScalarParameterValue(TEXT("EmissiveStrength"), 2.0f);
+        }
     }
     if (TargetId == UnitId)
     {
-        // Hit flash (set color or emissive)
-        if (DynMat) DynMat->SetScalarParameterValue(TEXT("EmissiveStrength"), 4.0f);
+        // Hit flash
+        if (DynMat)
+        {
+            DynMat->SetScalarParameterValue(TEXT("EmissiveStrength"), 4.0f);
+        }
     }
 }
 
@@ -100,6 +105,6 @@ void AIlluviumUnitActor::HandleDied(int32 Id)
 
 FVector AIlluviumUnitActor::GridToWorld(const FIntPoint& Pos) const
 {
-    return FVector(Pos.X * CellSize, Pos.Y * CellSize, 0.0f);
+    return FVector(Pos.X * SquareSize, Pos.Y * SquareSize, 0.0f);
 }
 

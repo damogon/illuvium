@@ -34,6 +34,6 @@ void AIlluviumGameModeBase::HandleUnitSpawned(int32 UnitId, FIntPoint SpawnPos, 
 
 	if (NewActor && SimulationComp)
 	{
-		NewActor->InitializeVisual(UnitId, bIsRed, SimulationComp, SpawnPos);
+		NewActor->InitializeVisuals(UnitId, bIsRed, SimulationComp, SpawnPos);
 	}
 }

@@ -80,67 +80,102 @@ void UIlluviumSimulationComponent::StopSimulation()
 
 void UIlluviumSimulationComponent::StepSimulation()
 {
-	// Precompute nearest target per unit
-	TArray<TPair<FTestUnit*, FTestUnit*>> NearestTarget; // Attacker, Target
-	for (auto& Unit : Units)
+	// Collect alive unit IDs
+	TArray<int32> AliveIds;
+	AliveIds.Reserve(Units.Num());
+	for (const auto& Pair : Units)
 	{
-		if (!Unit.Value.bIsAlive)
+		if (Pair.Value.bIsAlive)
 		{
-			continue;
-		}
-
-		FTestUnit* Best = nullptr;
-		int32 BestDist = INT32_MAX;
-		for (auto& OtherUnit : Units)
-		{
-			if (Unit.Key == OtherUnit.Key || Unit.Value.bIsRed == OtherUnit.Value.bIsRed || !OtherUnit.Value.bIsAlive)
-			{
-				continue;
-			}
-			int32 Dist = FMath::Abs(Unit.Value.Position.X - OtherUnit.Value.Position.X) + FMath::Abs(Unit.Value.Position.Y - OtherUnit.Value.Position.Y);
-			if (Dist < BestDist)
-			{
-				Best = &OtherUnit.Value;
-				BestDist = Dist;
-			}
-		}
-		if (Best != nullptr)
-		{
-			NearestTarget.Add(TPair<FTestUnit*, FTestUnit*>(&Unit.Value, Best));
+			AliveIds.Add(Pair.Key);
 		}
 	}
 
-	TArray<TPair<int32, FIntPoint>> MovesToBroadcast;
-	for (auto& AttackerToTarget : NearestTarget)
+	// Precompute nearest target per unit
+	TMap<int32 /*AttackerId*/, int32 /*TargetId*/> NearestTarget;
+	NearestTarget.Reserve(AliveIds.Num());
+
+	for (int32 Id : AliveIds)
 	{
-		// Has target?
-		int32 TargetId = AttackerToTarget.Value->ID;
-		if (TargetId == -1)
+		const FTestUnit& Attacker = Units[Id];
+		int32 BestId = -1;
+		int32 BestDist = INT32_MAX;
+
+		for (int32 OtherId : AliveIds)
+		{
+			if (OtherId == Id)
+				continue;
+
+			const FTestUnit& Other = Units[OtherId];
+			if (Other.bIsRed == Attacker.bIsRed)
+				continue;
+
+			const int32 Dist = ManhattanDist(Attacker.Position, Other.Position);
+			if (Dist < BestDist)
+			{
+				BestId = OtherId;
+				BestDist = Dist;
+			}
+		}
+
+		if (BestId != -1)
+		{
+			NearestTarget.Add(Id, BestId);
+		}
+	}
+
+	// Create an array of moves to ensure determinism
+	TArray<TPair<int32, FIntPoint>> MovesToBroadcast;
+	MovesToBroadcast.Reserve(AliveIds.Num());
+
+	// Set of occuped positions for avoidance
+	TSet<FIntPoint> OccupiedPositions;
+	for (int32 Id : AliveIds)
+	{
+		OccupiedPositions.Add(Units[Id].Position);
+	}
+
+	for (int32 Id : AliveIds)
+	{
+		FTestUnit& Attacker = Units[Id];
+
+		// Attack cooldown
+		if (Attacker.StepsUntilNextAttack > 0)
+		{
+			Attacker.StepsUntilNextAttack--;
+		}
+
+		const int32* TargetIdPtr = NearestTarget.Find(Id);
+		if (!TargetIdPtr)
 		{
 			continue;
 		}
-		FTestUnit& Attacker = *AttackerToTarget.Key;
-		FTestUnit& Target = *AttackerToTarget.Value;
-		int32 Dist = FMath::Abs(Attacker.Position.X - Target.Position.X) + FMath::Abs(Attacker.Position.Y - Target.Position.Y);
+
+		FTestUnit& Target = Units[*TargetIdPtr];
+		if (!Target.bIsAlive)
+		{
+			continue;
+		}
+
+		const int32 Dist = ManhattanDist(Attacker.Position, Target.Position);
+
 		// In attack range?
 		if (Dist <= SquaresAttackRange)
 		{
-			// Attack countdown
-			if (Attacker.StepsUntilNextAttack <= 0)
+			if (Attacker.StepsUntilNextAttack == 0)
 			{
-				// Attack happens
-				OnUnitAttacked.Broadcast(Attacker.ID, TargetId);
-				Target.Health -= 1;
+				// Attack
+				OnUnitAttacked.Broadcast(Attacker.ID, Target.ID);
+
+				Target.Health--;
 				if (Target.Health <= 0)
 				{
 					Target.bIsAlive = false;
 					OnUnitDied.Broadcast(Target.ID);
+					OccupiedPositions.Remove(Target.Position);
 				}
+
 				Attacker.StepsUntilNextAttack = TimeStepsPerAttack;
-			}
-			else
-			{
-				Attacker.StepsUntilNextAttack--;
 			}
 		}
 		else
@@ -162,17 +197,25 @@ void UIlluviumSimulationComponent::StepSimulation()
 				StepsLeft--;
 			}
 
-			if (!(NewPos == Attacker.Position))
+			// Ensure not stepping onto tile occupied by same team unit
+			if (!OccupiedPositions.Contains(NewPos) && NewPos != Attacker.Position)
 			{
+				OccupiedPositions.Remove(Attacker.Position);
 				Attacker.Position = NewPos;
-				MovesToBroadcast.Add(TPair<int32, FIntPoint>(Attacker.ID, Attacker.Position));
+				OccupiedPositions.Add(NewPos);
+				MovesToBroadcast.Emplace(Attacker.ID, NewPos);
 			}
 		}
 	}
 
 	// Broadcast movements after all decisions so simulation ordering is deterministic
-	for (auto& Pair : MovesToBroadcast)
+	for (const auto& Pair : MovesToBroadcast)
 	{
 		OnUnitMoved.Broadcast(Pair.Key, Pair.Value);
 	}
+}
+
+int32 UIlluviumSimulationComponent::ManhattanDist(const FIntPoint& A, const FIntPoint& B)
+{
+	return FMath::Abs(A.X - B.X) + FMath::Abs(A.Y - B.Y);
 }

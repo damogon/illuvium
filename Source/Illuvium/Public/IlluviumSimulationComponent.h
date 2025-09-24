@@ -22,20 +22,7 @@ struct ILLUVIUM_API FTestUnit
 	bool bIsRed;
 
 	FTestUnit() : Position(0, 0), ID(-1), Health(1), MaxHealth(1), StepsUntilNextAttack(0), bIsAlive(true), bIsRed(true) {}
-
-	//Override the comparison operator
-	bool operator==(const FTestUnit& Other) const
-	{
-		return Position == Other.Position && ID == Other.ID && Health == Other.Health && MaxHealth == Other.MaxHealth 
-			&& StepsUntilNextAttack == Other.StepsUntilNextAttack && bIsAlive == Other.bIsAlive && bIsRed == Other.bIsRed;
-	}
 };
-
-FORCEINLINE uint32 GetTypeHash(const FTestUnit& Other)
-{
-	uint32 Hash = FCrc::MemCrc32(&Other, sizeof(FTestUnit));
-	return Hash;
-}
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ILLUVIUM_API UIlluviumSimulationComponent : public UActorComponent
@@ -45,14 +32,7 @@ class ILLUVIUM_API UIlluviumSimulationComponent : public UActorComponent
 public:	
 	UIlluviumSimulationComponent();
 
-	UFUNCTION(Category = "Simulation")
 	void StartSimulation();
-
-	UFUNCTION(Category = "Simulation")
-	void StopSimulation();
-
-	void CreateUnits();
-	int32 SpawnUnit(bool bIsRed, const FIntPoint& Pos);
 
 	UPROPERTY(EditAnywhere, Category = "Simulation")
 	int32 GridWidth = 100;
@@ -100,11 +80,15 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	void CreateUnits();
+	int32 SpawnUnit(bool bIsRed, const FIntPoint& Pos);
+	void StopSimulation();
 	void StepSimulation();
+	int32 ManhattanDist(const FIntPoint& A, const FIntPoint& B);
 
+	TMap<int32, FTestUnit> Units;
 	FTimerHandle Timer_Step;
 	FRandomStream RandomStream;
-	TMap<int32, FTestUnit> Units;
 	int32 NextUnitId;
 	bool bRunning;
 };

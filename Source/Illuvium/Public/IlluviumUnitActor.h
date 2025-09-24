@@ -19,7 +19,7 @@ public:
 	AIlluviumUnitActor();
 
 	virtual void Tick(float DeltaTime) override;
-	void InitializeVisual(int32 InUnitId, bool bIsRedTeam, UIlluviumSimulationComponent* InSim, const FIntPoint& StartPos);
+	void InitializeVisuals(int32 InUnitId, bool bIsRedTeam, UIlluviumSimulationComponent* InSimComp, const FIntPoint& StartPos);
 
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> MeshComp;
@@ -31,7 +31,7 @@ public:
 	TObjectPtr<UIlluviumSimulationComponent> SimulationComp = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Simulation")
-	float CellSize = 100.0f;
+	float SquareSize = 100.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Simulation")
 	float LerpSpeed = 8.0f;
@@ -46,10 +46,12 @@ private:
 	UFUNCTION()
 	void HandleDied(int32 Id);
 
-	// Helpers
+	// Helper
 	FVector GridToWorld(const FIntPoint& Pos) const;
 
-	UMaterialInstanceDynamic* DynMat;
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> DynMat;
+
 	FVector PrevWorldPos;
 	FVector TargetWorldPos;
 	float LerpAlpha = 1.0f;
