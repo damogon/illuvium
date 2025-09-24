@@ -13,8 +13,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDied, int32, UnitId);
 
 struct ILLUVIUM_API FTestUnit
 {
-	FTestUnit() : ID(-1), bIsRed(true), Position(0, 0), Health(1), MaxHealth(1), StepsUntilNextAttack(0), bIsAlive(true) {}
-
 	FIntPoint Position;
 	int ID;
 	int Health;
@@ -22,7 +20,22 @@ struct ILLUVIUM_API FTestUnit
 	int StepsUntilNextAttack;
 	bool bIsAlive;
 	bool bIsRed;
+
+	FTestUnit() : Position(0, 0), ID(-1), Health(1), MaxHealth(1), StepsUntilNextAttack(0), bIsAlive(true), bIsRed(true) {}
+
+	//Override the comparison operator
+	bool operator==(const FTestUnit& Other) const
+	{
+		return Position == Other.Position && ID == Other.ID && Health == Other.Health && MaxHealth == Other.MaxHealth 
+			&& StepsUntilNextAttack == Other.StepsUntilNextAttack && bIsAlive == Other.bIsAlive && bIsRed == Other.bIsRed;
+	}
 };
+
+FORCEINLINE uint32 GetTypeHash(const FTestUnit& Other)
+{
+	uint32 Hash = FCrc::MemCrc32(&Other, sizeof(FTestUnit));
+	return Hash;
+}
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ILLUVIUM_API UIlluviumSimulationComponent : public UActorComponent

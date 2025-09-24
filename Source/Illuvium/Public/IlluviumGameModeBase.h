@@ -7,6 +7,7 @@
 #include "IlluviumGameModeBase.generated.h"
 
 class UIlluviumSimulationComponent;
+class AIlluviumUnitActor;
 
 UCLASS()
 class ILLUVIUM_API AIlluviumGameModeBase : public AGameModeBase
@@ -17,8 +18,11 @@ public:
 
 	AIlluviumGameModeBase();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Simulation")
+	UPROPERTY(VisibleAnywhere, Category = "Simulation")
 	TObjectPtr<UIlluviumSimulationComponent> SimulationComp;
+
+	UPROPERTY(EditAnywhere, Category = "Simulation")
+	TSubclassOf<AIlluviumUnitActor> UnitActorClass;
 
 protected:
 	virtual void BeginPlay() override;

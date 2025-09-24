@@ -3,6 +3,7 @@
 
 #include "IlluviumGameModeBase.h"
 #include "IlluviumSimulationComponent.h"
+#include "IlluviumUnitActor.h"
 
 AIlluviumGameModeBase::AIlluviumGameModeBase()
 {
@@ -22,5 +23,17 @@ void AIlluviumGameModeBase::BeginPlay()
 
 void AIlluviumGameModeBase::HandleUnitSpawned(int32 UnitId, FIntPoint SpawnPos, bool bIsRed)
 {
+	if (!UnitActorClass)
+	{
+		return;
+	}
 
+	FVector WorldLocation(SpawnPos.X * 100.0f, SpawnPos.Y * 100.0f, 0.0f);
+	FActorSpawnParameters Params;
+	AIlluviumUnitActor* NewActor = GetWorld()->SpawnActor<AIlluviumUnitActor>(UnitActorClass, WorldLocation, FRotator::ZeroRotator, Params);
+
+	if (NewActor && SimulationComp)
+	{
+		NewActor->InitializeVisual(UnitId, bIsRed, SimulationComp, SpawnPos);
+	}
 }

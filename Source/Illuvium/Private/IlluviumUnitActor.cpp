@@ -11,11 +11,7 @@ AIlluviumUnitActor::AIlluviumUnitActor()
 {
     PrimaryActorTick.bCanEverTick = true;
     MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
-    RootComponent->SetupAttachment(MeshComp);
-    UnitId = -1;
-    SimulationComp = nullptr;
-    CellSize = 100.0f;
-    LerpSpeed = 8.0f;
+    RootComponent = MeshComp;
     LerpAlpha = 1.0f;
     bAlive = true;
 }

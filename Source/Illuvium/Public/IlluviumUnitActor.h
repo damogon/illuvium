@@ -25,10 +25,10 @@ public:
 	TObjectPtr<UStaticMeshComponent> MeshComp;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Simulation")
-	int32 UnitId;
+	int32 UnitId = -1;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Simulation")
-	TObjectPtr<UIlluviumSimulationComponent> SimulationComp;
+	TObjectPtr<UIlluviumSimulationComponent> SimulationComp = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Simulation")
 	float CellSize = 100.0f;
@@ -52,6 +52,6 @@ private:
 	UMaterialInstanceDynamic* DynMat;
 	FVector PrevWorldPos;
 	FVector TargetWorldPos;
-	float LerpAlpha;
-	bool bAlive;
+	float LerpAlpha = 1.0f;
+	bool bAlive = true;
 };
